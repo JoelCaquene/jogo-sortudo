@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Login - JOGO SORTUDO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-image: url('/static/sua-imagem-fundo.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Barra vertical elegante */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #eab308;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-slate-100">
+
+    <div class="glass-card w-full h-screen sm:h-auto sm:max-w-xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+        
+        <div class="bg-yellow-500 p-6 flex justify-between items-center text-slate-900 shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-2 rounded-full shadow-inner">
+                    <i data-lucide="smile" class="w-8 h-8 text-yellow-600"></i>
+                </div>
+                <h1 class="text-2xl font-black tracking-tighter italic uppercase">JOGO SORTUDO</h1>
+            </div>
+            
+            <select onchange="trocarIdioma(this.value)" class="bg-yellow-600 text-white text-xs font-bold rounded-full px-3 py-2 outline-none border-none cursor-pointer">
+                <option value="pt">PT-BR</option>
+                <option value="en">EN-US</option>
+                <option value="fr">FR-FR</option>
+            </select>
+        </div>
+
+        <div class="p-6 sm:p-10 flex-1 overflow-y-auto overflow-x-hidden">
+            <h2 id="txt-titulo" class="text-3xl font-extrabold text-slate-800 mb-2">Entrar</h2>
+            <p id="txt-subtitulo" class="text-slate-500 mb-8 font-medium">Bem-vindo de volta! Boa sorte hoje.</p>
+
+            <form method="POST" class="space-y-6 w-full">
+                {% csrf_token %}
+                
+                <div class="w-full">
+                    <label id="label-tel" class="block text-slate-700 font-bold mb-2 ml-1">Número de Telefone</label>
+                    <div class="flex border-2 border-slate-200 rounded-2xl overflow-hidden focus-within:border-yellow-500 transition-all bg-white w-full">
+                        <div class="bg-slate-50 p-4 border-r border-slate-200 text-slate-400">
+                            <i data-lucide="phone" class="w-5 h-5"></i>
+                        </div>
+                        <input type="tel" name="username" placeholder="Seu telefone" required 
+                               class="flex-1 p-4 outline-none text-slate-800 text-lg font-semibold w-full">
+                    </div>
+                </div>
+
+                <div class="w-full">
+                    <label id="label-senha" class="block text-slate-700 font-bold mb-2 ml-1">Senha</label>
+                    <div class="relative border-2 border-slate-200 rounded-2xl overflow-hidden focus-within:border-yellow-500 transition-all bg-white w-full flex">
+                        <div class="bg-slate-50 p-4 border-r border-slate-200 text-slate-400">
+                            <i data-lucide="lock" class="w-5 h-5"></i>
+                        </div>
+                        <input type="password" id="password" name="password" placeholder="********" required 
+                               class="w-full p-4 outline-none text-slate-800 text-lg font-semibold">
+                        <button type="button" onclick="togglePassword()" class="pr-5 text-slate-400 hover:text-yellow-600 transition-colors bg-white">
+                            <i id="eye-icon" data-lucide="eye" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-entrar" class="w-full bg-green-600 hover:bg-green-500 text-white font-black text-xl py-5 rounded-2xl transition-all transform active:scale-[0.98] shadow-[0_6px_0_rgb(21,128,61)]">
+                    ENTRAR NO JOGO
+                </button>
+            </form>
+
+            <p class="text-center mt-8 text-slate-600 font-semibold mb-4">
+                <span id="txt-nao-tem">Não tem conta?</span> 
+                <a href="/cadastro" class="text-yellow-600 font-bold hover:underline ml-1">Criar agora</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.getElementById('eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        function trocarIdioma(lang) {
+            const textos = {
+                'pt': { 
+                    titulo: 'Entrar', 
+                    sub: 'Bem-vindo de volta! Boa sorte hoje.', 
+                    tel: 'Número de Telefone', 
+                    senha: 'Senha', 
+                    btn: 'ENTRAR NO JOGO', 
+                    nao: 'Não tem conta?' 
+                },
+                'en': { 
+                    titulo: 'Login', 
+                    sub: 'Welcome back! Good luck today.', 
+                    tel: 'Phone Number', 
+                    senha: 'Password', 
+                    btn: 'LOG IN TO GAME', 
+                    nao: 'No account?' 
+                },
+                'fr': { 
+                    titulo: 'Connexion', 
+                    sub: 'Content de vous revoir! Bonne chance.', 
+                    tel: 'Numéro de téléphone', 
+                    senha: 'Mot de passe', 
+                    btn: 'ENTRER DANS LE JEU', 
+                    nao: 'Pas de compte?' 
+                }
+            };
+            document.getElementById('txt-titulo').innerText = textos[lang].titulo;
+            document.getElementById('txt-subtitulo').innerText = textos[lang].sub;
+            document.getElementById('label-tel').innerText = textos[lang].tel;
+            document.getElementById('label-senha').innerText = textos[lang].senha;
+            document.getElementById('btn-entrar').innerText = textos[lang].btn;
+            document.getElementById('txt-nao-tem').innerText = textos[lang].nao;
+        }
+    </script>
+</body>
+</html>

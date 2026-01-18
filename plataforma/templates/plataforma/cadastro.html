@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cadastro - JOGO SORTUDO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-image: url('/static/sua-imagem-fundo.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            /* Trava apenas o balanço horizontal, permitindo o vertical */
+            overflow-x: hidden; 
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Ajuste para alinhar as bordas dos inputs perfeitamente às laterais do card */
+        .form-container {
+            width: 100%;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        /* Personalização da barra vertical para ficar elegante */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #eab308; /* Amarelo do tema */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen bg-slate-100">
+
+    <div class="glass-card w-full h-screen sm:h-auto sm:max-w-xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+        
+        <div class="bg-yellow-500 p-6 flex justify-between items-center text-slate-900 shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-2 rounded-full shadow-inner">
+                    <i data-lucide="smile" class="w-8 h-8 text-yellow-600"></i>
+                </div>
+                <h1 class="text-2xl font-black tracking-tighter italic uppercase">JOGO SORTUDO</h1>
+            </div>
+            
+            <select onchange="trocarIdioma(this.value)" class="bg-yellow-600 text-white text-xs font-bold rounded-full px-3 py-2 outline-none border-none cursor-pointer">
+                <option value="pt">PT-BR</option>
+                <option value="en">EN-US</option>
+                <option value="fr">FR-FR</option>
+            </select>
+        </div>
+
+        <div class="p-6 sm:p-10 flex-1 overflow-y-auto overflow-x-hidden">
+            <h2 id="txt-titulo" class="text-3xl font-extrabold text-slate-800 mb-2">Criar Conta</h2>
+            <p id="txt-subtitulo" class="text-slate-500 mb-8 font-medium">Junte-se a milhares de jogadores e ganhe bônus!</p>
+
+            <form method="POST" class="space-y-6 w-full">
+                {% csrf_token %}
+                
+                <div class="w-full">
+                    <label id="label-tel" class="block text-slate-700 font-bold mb-2 ml-1">País e Telefone</label>
+                    <div class="flex border-2 border-slate-200 rounded-2xl overflow-hidden focus-within:border-yellow-500 transition-all bg-white w-full">
+                        <select name="pais" class="bg-slate-50 p-4 outline-none border-r border-slate-200 text-slate-700 font-bold text-sm min-w-[105px]">
+                            <option value="Angola" selected>AO +244</option>
+                            <option value="Brasil">BR +55</option>
+                            <option value="Portugal">PT +351</option>
+                        </select>
+                        <input type="tel" name="telefone" placeholder="9xx xxx xxx" required 
+                               class="flex-1 p-4 outline-none text-slate-800 text-lg font-semibold w-full">
+                    </div>
+                </div>
+
+                <div class="w-full">
+                    <label id="label-senha" class="block text-slate-700 font-bold mb-2 ml-1">Sua Senha</label>
+                    <div class="relative border-2 border-slate-200 rounded-2xl overflow-hidden focus-within:border-yellow-500 transition-all bg-white w-full flex">
+                        <input type="password" id="password" name="password" placeholder="********" required 
+                               class="w-full p-4 outline-none text-slate-800 text-lg font-semibold">
+                        <button type="button" onclick="togglePassword()" class="pr-5 text-slate-400 hover:text-yellow-600 transition-colors bg-white">
+                            <i id="eye-icon" data-lucide="eye" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="w-full">
+                    <label id="label-convite" class="block text-slate-700 font-bold mb-2 ml-1">Código de Convite (Opcional)</label>
+                    <input type="text" name="invite_code" placeholder="EX: SORTUDO15" 
+                           value="{{ request.GET.ref|default:'' }}"
+                           class="w-full p-4 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl outline-none focus:border-yellow-500 focus:bg-white text-slate-600 font-bold uppercase transition-all shadow-sm">
+                </div>
+
+                <button type="submit" id="btn-cadastrar" class="w-full bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-black text-xl py-5 rounded-2xl transition-all transform active:scale-[0.98] shadow-[0_6px_0_rgb(202,138,4)]">
+                    CADASTRAR AGORA
+                </button>
+            </form>
+
+            <p class="text-center mt-8 text-slate-600 font-semibold mb-4">
+                <span id="txt-ja-tem">Já tem uma conta?</span> 
+                <a href="/login" class="text-yellow-600 font-bold hover:underline ml-1">Entrar</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.getElementById('eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        function trocarIdioma(lang) {
+            const textos = {
+                'pt': { titulo: 'Criar Conta', sub: 'Junte-se a milhares de jogadores e ganhe bônus!', tel: 'País e Telefone', senha: 'Sua Senha', convite: 'Código de Convite (Opcional)', btn: 'CADASTRAR AGORA', login: 'Já tem uma conta?' },
+                'en': { titulo: 'Sign Up', sub: 'Join thousands of players and get bonuses!', tel: 'Country and Phone', senha: 'Your Password', convite: 'Invite Code (Optional)', btn: 'REGISTER NOW', login: 'Already have an account?' },
+                'fr': { titulo: 'S\'inscrire', sub: 'Rejoignez des joueurs et gagnez des bonus!', tel: 'Pays et Téléphone', senha: 'Votre mot de passe', convite: 'Code d\'invitation (Optionnel)', btn: 'S\'INSCRIRE MAINTENANT', login: 'Vous avez déjà um compte?' }
+            };
+            document.getElementById('txt-titulo').innerText = textos[lang].titulo;
+            document.getElementById('txt-subtitulo').innerText = textos[lang].sub;
+            document.getElementById('label-tel').innerText = textos[lang].tel;
+            document.getElementById('label-senha').innerText = textos[lang].senha;
+            document.getElementById('label-convite').innerText = textos[lang].convite;
+            document.getElementById('btn-cadastrar').innerText = textos[lang].btn;
+            document.getElementById('txt-ja-tem').innerText = textos[lang].login;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convidar Amigos - 15% Comissão</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="text-white p-4">
+    <div class="max-w-md mx-auto">
+        <div class="mb-6">
+            <a href="{% url 'home_jogo' %}" class="inline-flex items-center text-gray-400 hover:text-white transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="構造9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+                Voltar ao Jogo
+            </a>
+        </div>
+
+        <div class="text-center">
+            <h2 class="text-3xl font-black text-yellow-500 mb-2 italic">GANHE 15%</h2>
+            <p class="text-sm text-gray-400 mb-8 font-medium">Receba bónus direto no saldo por cada depósito dos seus convidados!</p>
+
+            <div class="bg-slate-800/50 backdrop-blur-sm p-6 rounded-3xl border border-yellow-500/30 mb-8 shadow-xl">
+                <p class="text-[10px] uppercase tracking-widest text-yellow-500/70 mb-3 font-bold">Seu Link de Convite Único</p>
+                <div class="bg-black/40 p-4 rounded-xl flex justify-between items-center border border-white/5">
+                    <code class="text-yellow-400 text-sm truncate mr-2" id="link-convite">http://{{ request.get_host }}{% url 'cadastro' %}?ref={{ usuario.telefone }}</code>
+                    <button onclick="copiarLink()" class="bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg text-xs font-black transition-transform active:scale-95">
+                        COPIAR
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="bg-slate-800/80 p-5 rounded-2xl border border-white/5 shadow-lg">
+                    <p class="text-3xl font-black text-white">{{ total_sub }}</p>
+                    <p class="text-[10px] uppercase text-gray-500 font-bold">Na Equipa</p>
+                </div>
+                <div class="bg-slate-800/80 p-5 rounded-2xl border-b-4 border-green-500 shadow-lg">
+                    <p class="text-3xl font-black text-green-500">{{ usuario.saldo }}</p>
+                    <p class="text-[10px] uppercase text-gray-500 font-bold">Saldo Atual (Kz)</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between mb-4 px-1">
+                <h3 class="font-bold text-gray-300">Seus Convidados</h3>
+                <span class="text-[10px] bg-white/10 px-2 py-1 rounded text-gray-400">{{ total_sub }} TOTAL</span>
+            </div>
+
+            <div class="bg-slate-800/80 rounded-2xl overflow-hidden shadow-2xl border border-white/5">
+                <table class="w-full text-left">
+                    <thead class="bg-white/5 text-gray-400 uppercase text-[10px] tracking-tighter">
+                        <tr>
+                            <th class="p-4 font-bold">Telefone</th>
+                            <th class="p-4 font-bold">País</th>
+                            <th class="p-4 font-bold text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        {% for sub in subordinados %}
+                        <tr class="hover:bg-white/5 transition">
+                            <td class="p-4 text-sm font-medium">{{ sub.telefone }}</td>
+                            <td class="p-4 text-xs text-gray-400">{{ sub.pais }}</td>
+                            <td class="p-4 text-right">
+                                <span class="bg-green-500/10 text-green-500 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Ativo</span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="p-10 text-center">
+                                <div class="text-gray-600 italic">Nenhum convidado ainda.</div>
+                                <p class="text-[10px] text-gray-700 mt-2">Partilhe o seu link para começar a ganhar!</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-black px-6 py-3 rounded-full font-bold shadow-2xl opacity-0 transition-opacity pointer-events-none">
+        Link Copiado! 🚀
+    </div>
+
+    <script>
+        function copiarLink() {
+            let link = document.getElementById('link-convite').innerText;
+            navigator.clipboard.writeText(link);
+            
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0');
+            setTimeout(() => { toast.classList.add('opacity-0'); }, 2000);
+        }
+    </script>
+</body>
+</html>

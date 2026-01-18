@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JOGO SORTUDO - Premium Casino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background: radial-gradient(circle at center, #0a2e1a 0%, #05150d 100%); touch-action: manipulation; overflow-x: hidden; }
+        
+        /* Dado 3D */
+        .dice-container { perspective: 1000px; width: 80px; height: 80px; margin: 10px auto; }
+        .dice { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 1s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
+        .face { position: absolute; width: 80px; height: 80px; background: white; border: 2px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; border-radius: 12px; color: #1a1a1a; box-shadow: inset 0 0 15px rgba(0,0,0,0.1); }
+        .face1 { transform: rotateY(0deg) translateZ(40px); }
+        .face2 { transform: rotateY(90deg) translateZ(40px); }
+        .face3 { transform: rotateY(180deg) translateZ(40px); }
+        .face4 { transform: rotateY(-90deg) translateZ(40px); }
+        .face5 { transform: rotateX(90deg) translateZ(40px); }
+        .face6 { transform: rotateX(-90deg) translateZ(40px); }
+
+        .is-rolling { animation: rolling 0.3s infinite linear; }
+        @keyframes rolling { from { transform: rotateX(0deg) rotateY(0deg); } to { transform: rotateX(360deg) rotateY(360deg); } }
+
+        /* Animações de Vitória/Derrota e Boas-vindas */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+        .pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Lista de Ganhadores (Ticker) */
+        .winner-ticker { height: 120px; overflow: hidden; position: relative; }
+        .winner-list { animation: tickerUp 10s linear infinite; }
+        @keyframes tickerUp { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
+
+        .btn-select { border: 2px solid transparent; transition: all 0.3s; }
+        .btn-select.active { border-color: #fbbf24; background: #fbbf24 !important; color: black !important; transform: translateY(-5px); box-shadow: 0 5px 15px rgba(251, 191, 36, 0.4); }
+        
+        /* Etapas */
+        .step-hidden { display: none; }
+    </style>
+</head>
+<body class="text-white font-sans">
+
+    <audio id="snd-click" src="https://www.soundjay.com/buttons/sounds/button-16.mp3"></audio>
+    <audio id="snd-roll" src="https://www.soundjay.com/misc/sounds/dice-roll-1.mp3"></audio>
+    <audio id="snd-win" src="https://www.soundjay.com/human/sounds/applause-01.mp3"></audio>
+    <audio id="snd-lose" src="https://www.soundjay.com/buttons/sounds/button-11.mp3"></audio>
+
+    <nav class="bg-black p-3 sticky top-0 z-50 border-b border-yellow-500/50">
+        <div class="max-w-md mx-auto">
+            <div class="flex justify-between items-center mb-2">
+                <div>
+                    <p class="text-[10px] uppercase text-gray-400 font-bold">SALDO DISPONÍVEL</p>
+                    <p class="text-xl font-black text-yellow-400">Kz <span id="saldo-nav">{{ user.saldo }}</span></p>
+                </div>
+                <div class="flex gap-1">
+                    <a href="/convite" class="bg-yellow-500 text-black px-2 py-2 rounded-lg text-[9px] font-black flex flex-col items-center">
+                        <i class="fas fa-users mb-1"></i> CONVITE
+                    </a>
+                    <a href="/depositar" class="bg-green-600 px-2 py-2 rounded-lg text-[9px] font-black flex flex-col items-center">
+                        <i class="fas fa-wallet mb-1"></i> DEPOSITAR
+                    </a>
+                    <a href="/sacar" class="bg-red-600 px-2 py-2 rounded-lg text-[9px] font-black flex flex-col items-center">
+                        <i class="fas fa-money-bill-wave mb-1"></i> SACAR
+                    </a>
+                </div>
+            </div>
+            <div class="flex justify-between items-center border-t border-white/5 pt-1 px-1">
+                <div class="flex gap-4">
+                    <a href="/historico" class="text-gray-400 text-[10px]"><i class="fas fa-history mr-1"></i> Histórico</a>
+                    <a href="{{ config.link_whatsapp }}" class="text-green-500 text-[10px]"><i class="fab fa-whatsapp mr-1"></i> Suporte</a>
+                </div>
+                <form action="{% url 'logout' %}" method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="text-red-500 text-[10px] font-bold flex items-center">
+                        <i class="fas fa-sign-out-alt mr-1"></i> SAIR
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-md mx-auto p-4">
+        <div class="flex justify-between items-center bg-black/30 rounded-3xl p-4 mb-4 border border-white/5">
+            <div class="text-left">
+                <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-widest">Próxima Rodada</p>
+                <div class="text-3xl font-black" id="timer">30s</div>
+            </div>
+            <div class="dice-container">
+                <div id="dice" class="dice">
+                    <div class="face face1">2</div><div class="face face2">3</div>
+                    <div class="face face3">4</div><div class="face face4">2</div>
+                    <div class="face face5">3</div><div class="face face6">4</div>
+                </div>
+            </div>
+        </div>
+
+        <h2 id="status-msg" class="text-center text-yellow-400 text-xs font-black mb-4 animate-pulse uppercase tracking-tighter">Aguardando Apostas...</h2>
+
+        <div id="step-1" class="space-y-4">
+            <p class="text-center text-[10px] font-bold text-gray-400">PASSO 1: ESCOLHA SEU NÚMERO DA SORTE</p>
+            <div class="grid grid-cols-3 gap-3">
+                <button onclick="selecionarEtapa1(2)" class="btn-select bg-white/10 p-4 rounded-2xl flex flex-col items-center">
+                    <span class="text-2xl font-black">2</span>
+                    <span class="text-[9px] text-green-400">GANHA 2X</span>
+                </button>
+                <button onclick="selecionarEtapa1(3)" class="btn-select bg-white/10 p-4 rounded-2xl flex flex-col items-center">
+                    <span class="text-2xl font-black">3</span>
+                    <span class="text-[9px] text-green-400">GANHA 3X</span>
+                </button>
+                <button onclick="selecionarEtapa1(4)" class="btn-select bg-white/10 p-4 rounded-2xl flex flex-col items-center">
+                    <span class="text-2xl font-black">4</span>
+                    <span class="text-[9px] text-green-400">GANHA 4X</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="step-2" class="step-hidden space-y-4 bg-black/40 p-5 rounded-3xl border border-yellow-500/20">
+            <div class="flex justify-between items-center">
+                <p class="text-[10px] font-bold text-yellow-500">NÚMERO SELECIONADO: <span id="num-display" class="text-white text-lg ml-2"></span></p>
+                <button onclick="resetSteps()" class="text-[9px] underline text-gray-500 uppercase">Mudar</button>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="setValor(1000)" class="bg-white/5 py-2 rounded-xl text-xs font-bold border border-white/10">1.000</button>
+                <button onclick="setValor(5000)" class="bg-white/5 py-2 rounded-xl text-xs font-bold border border-white/10">5.000</button>
+                <button onclick="setValor(10000)" class="bg-white/5 py-2 rounded-xl text-xs font-bold border border-white/10">10.000</button>
+            </div>
+            <input type="number" id="valor-input" oninput="calcGanho()" placeholder="Valor da Aposta" class="w-full bg-black/60 border border-white/10 p-4 rounded-2xl text-center font-black text-yellow-500 text-xl outline-none">
+            <div class="text-center py-2 bg-green-500/10 rounded-xl">
+                <p class="text-[9px] text-green-500 font-bold uppercase">Ganho Potencial</p>
+                <p class="text-lg font-black text-green-400" id="ganho-potencial">Kz 0,00</p>
+            </div>
+            <button id="btn-confirmar" onclick="confirmarApostaTotal()" class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl shadow-xl active:scale-95 transition-all">
+                CONFIRMAR E JOGAR
+            </button>
+        </div>
+
+        <div id="step-3" class="step-hidden text-center p-6 bg-green-600/20 rounded-3xl border border-green-500/30">
+            <i class="fas fa-check-circle text-4xl text-green-500 mb-2"></i>
+            <h3 class="font-black text-lg">APOSTA REGISTADA!</h3>
+            <p class="text-xs text-gray-300">Aguardando o sorteio do dado...</p>
+        </div>
+
+        <div class="mt-8">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="h-[1px] flex-1 bg-white/10"></div>
+                <span class="text-[10px] font-black text-yellow-500 uppercase tracking-widest"><i class="fas fa-bolt mr-1"></i> Ganhos em Tempo Real</span>
+                <div class="h-[1px] flex-1 bg-white/10"></div>
+            </div>
+            <div class="winner-ticker">
+                <div id="lista-ganhos" class="winner-list space-y-2"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal-welcome" class="modal-overlay" style="display: flex;">
+        <div class="bg-zinc-900 border border-yellow-500/50 p-6 rounded-[30px] text-left pop-in max-w-xs shadow-2xl">
+            <div class="text-center mb-4">
+                <i class="fas fa-star text-yellow-500 text-3xl mb-2"></i>
+                <h1 class="text-xl font-black text-white">BEM-VINDO AO JOGO SORTUDO!</h1>
+            </div>
+            <div class="space-y-4 text-xs">
+                <div class="bg-white/5 p-3 rounded-xl">
+                    <p class="text-yellow-500 font-black mb-1">1. FORMAÇÃO DE EQUIPA</p>
+                    <p class="text-gray-300 leading-relaxed">Copie o seu link e envie a amigos e familiares e ganhe 15% em cada depósito que eles realizarem.</p>
+                </div>
+                <div class="bg-white/5 p-3 rounded-xl">
+                    <p class="text-yellow-500 font-black mb-1">2. COMO JOGAR</p>
+                    <p class="text-gray-300 leading-relaxed">Selecione o multiplicador e o valor. Se o dado calhar no seu número, você ganha!</p>
+                </div>
+                <a href="{{ config.link_whatsapp }}" class="bg-green-600/20 border border-green-500/30 p-3 rounded-xl flex items-center justify-between group active:scale-95 transition-all">
+                    <div>
+                        <p class="text-green-500 font-black mb-0.5">SUPORTE WHATSAPP</p>
+                        <p class="text-gray-400 text-[10px]">Dúvidas? Fale conosco agora.</p>
+                    </div>
+                    <i class="fab fa-whatsapp text-2xl text-green-500"></i>
+                </a>
+            </div>
+            <button onclick="closeModals()" class="w-full bg-yellow-500 text-black py-4 mt-5 rounded-2xl font-black uppercase text-sm shadow-lg hover:bg-yellow-400 transition-colors">
+                ENTENDI E VOU JOGAR
+            </button>
+        </div>
+    </div>
+
+    <div id="modal-ganhou" class="modal-overlay">
+        <div class="bg-gradient-to-b from-yellow-400 to-yellow-600 text-black p-8 rounded-[40px] text-center pop-in shadow-2xl max-w-xs">
+            <i class="fas fa-trophy text-6xl mb-4 text-white drop-shadow-md"></i>
+            <h1 class="text-4xl font-black mb-1">PARABÉNS!</h1>
+            <p class="text-4xl font-black my-4" id="valor-vitoria">Kz 0</p>
+            <button onclick="location.reload()" class="w-full bg-black text-white py-4 rounded-2xl font-black uppercase shadow-lg">COLETAR KZ</button>
+        </div>
+    </div>
+
+    <div id="modal-perdeu" class="modal-overlay">
+        <div class="bg-gray-900 border border-white/10 p-8 rounded-[40px] text-center pop-in max-w-xs">
+            <i class="fas fa-sad-tear text-5xl mb-4 text-gray-600"></i>
+            <h1 class="text-2xl font-black mb-1">FOI POR POUCO!</h1>
+            <button onclick="location.reload()" class="w-full bg-white text-black py-4 rounded-2xl font-black uppercase">TENTAR NOVAMENTE</button>
+        </div>
+    </div>
+
+    <script>
+        let numeroEscolhido = null;
+        let apostaID = null;
+        let saldoAtual = parseFloat("{{ user.saldo }}".replace(',', '.')) || 0;
+        let apostaAtiva = false;
+        let tempoGlobal = 30;
+
+        const sClick = document.getElementById('snd-click');
+        const sRoll = document.getElementById('snd-roll');
+        const sWin = document.getElementById('snd-win');
+        const sLose = document.getElementById('snd-lose');
+
+        function selecionarEtapa1(n) {
+            sClick.play();
+            numeroEscolhido = n;
+            document.getElementById('num-display').innerText = n;
+            document.getElementById('step-1').classList.add('step-hidden');
+            document.getElementById('step-2').classList.remove('step-hidden');
+            calcGanho();
+        }
+
+        function setValor(v) {
+            sClick.play();
+            document.getElementById('valor-input').value = v;
+            calcGanho();
+        }
+
+        function calcGanho() {
+            const val = parseFloat(document.getElementById('valor-input').value) || 0;
+            const mult = numeroEscolhido || 0;
+            document.getElementById('ganho-potencial').innerText = "Kz " + (val * mult).toLocaleString();
+        }
+
+        function resetSteps() {
+            document.getElementById('step-2').classList.add('step-hidden');
+            document.getElementById('step-1').classList.remove('step-hidden');
+        }
+
+        async function confirmarApostaTotal() {
+            const valorInput = document.getElementById('valor-input').value;
+            const valor = parseFloat(valorInput);
+            const btn = document.getElementById('btn-confirmar');
+            // Busca o token CSRF de forma segura
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            if (valor > saldoAtual) return alert("Saldo insuficiente!");
+            if (valor <= 0 || isNaN(valor)) return alert("Insira um valor válido!");
+
+            btn.disabled = true;
+            btn.innerText = "REGISTRANDO...";
+
+            const formData = new FormData();
+            formData.append('valor_investido', valor);
+            formData.append('numero_escolhido', numeroEscolhido);
+
+            try {
+                const response = await fetch('/apostar/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.sucesso) {
+                    sClick.play();
+                    apostaID = data.aposta_id;
+                    apostaAtiva = true;
+                    saldoAtual = data.novo_saldo;
+                    document.getElementById('saldo-nav').innerText = saldoAtual.toLocaleString();
+                    document.getElementById('step-2').classList.add('step-hidden');
+                    document.getElementById('step-3').classList.remove('step-hidden');
+                } else {
+                    alert(data.erro);
+                    btn.disabled = false;
+                    btn.innerText = "CONFIRMAR E JOGAR";
+                }
+            } catch (e) {
+                alert("Erro de conexão com o servidor.");
+                btn.disabled = false;
+                btn.innerText = "CONFIRMAR E JOGAR";
+            }
+        }
+
+        setInterval(() => {
+            const agora = Math.floor(Date.now() / 1000);
+            const ciclo = agora % 40; 
+
+            if (ciclo < 30) {
+                tempoGlobal = 30 - ciclo;
+                document.getElementById('timer').innerText = tempoGlobal + "s";
+                document.getElementById('status-msg').innerText = "FAÇAM SUAS APOSTAS!";
+                if (tempoGlobal == 29) { 
+                    apostaAtiva = false; apostaID = null; 
+                }
+            } else {
+                if (tempoGlobal > 0) {
+                    tempoGlobal = 0;
+                    iniciarSorteio();
+                }
+                document.getElementById('timer').innerText = "0s";
+                document.getElementById('status-msg').innerText = "SORTEANDO...";
+            }
+        }, 1000);
+
+        function iniciarSorteio() {
+            sRoll.play();
+            const dice = document.getElementById('dice');
+            dice.classList.add('is-rolling');
+
+            setTimeout(() => {
+                dice.classList.remove('is-rolling');
+                const resultadoVisivel = Math.floor(Math.random() * 3) + 2; 
+                pararDado(resultadoVisivel);
+                
+                if (apostaAtiva && apostaID) {
+                    setTimeout(() => processarFinalServidor(resultadoVisivel), 1000);
+                }
+            }, 3000);
+        }
+
+        function pararDado(num) {
+            const rots = { 2: 'rotateX(0deg) rotateY(0deg)', 3: 'rotateX(0deg) rotateY(-90deg)', 4: 'rotateX(0deg) rotateY(-180deg)' };
+            document.getElementById('dice').style.transform = rots[num];
+        }
+
+        async function processarFinalServidor(resVisual) {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            try {
+                const response = await fetch('/processar-resultado/', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken 
+                    },
+                    body: JSON.stringify({ 'resultado': resVisual, 'aposta_id': apostaID })
+                });
+                const data = await response.json();
+
+                if (data.ganhou) {
+                    sWin.play();
+                    document.getElementById('valor-vitoria').innerText = "Kz " + (data.novo_saldo - (saldoAtual)).toLocaleString();
+                    document.getElementById('modal-ganhou').style.display = 'flex';
+                } else {
+                    sLose.play();
+                    document.getElementById('modal-perdeu').style.display = 'flex';
+                }
+                saldoAtual = data.novo_saldo;
+                document.getElementById('saldo-nav').innerText = saldoAtual.toLocaleString();
+            } catch (e) {
+                console.error("Erro ao processar resultado final.");
+            }
+            apostaAtiva = false;
+        }
+
+        function closeModals() {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+        }
+
+        function renderWinners() {
+            const container = document.getElementById('lista-ganhos');
+            const ddds = ["923", "941", "912", "935", "921"];
+            let html = "";
+            for(let i=0; i<15; i++) {
+                const tel = ddds[Math.floor(Math.random()*ddds.length)] + "***" + Math.floor(100+Math.random()*900);
+                const val = (Math.random() * 50000 + 500).toFixed(0);
+                html += `
+                    <div class="flex justify-between items-center bg-white/5 p-3 rounded-xl border-l-4 border-green-500">
+                        <span class="text-[11px] font-bold text-gray-300"><i class="fas fa-user-circle mr-1"></i> ${tel}</span>
+                        <span class="text-[11px] font-black text-green-400">+ Kz ${parseInt(val).toLocaleString()}</span>
+                    </div>`;
+            }
+            container.innerHTML = html + html; 
+        }
+        renderWinners();
+    </script>
+</body>
+</html>
