@@ -1,24 +1,21 @@
 import os
 from pathlib import Path
-import dj_database_url # Importante para o banco de dados no Render
+import dj_database_url
 
 # Caminho base do projeto
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- SEGURANÇA ---
-# Em produção, pegamos a chave do ambiente; se não houver, usa a padrão (local)
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-ob&x00fwb9^4c*qu@l)6h%^vdn1u)6^yl_#s0+89fi@+t(v!)5')
 
 # DEBUG desliga automaticamente no Render
 DEBUG = 'RENDER' not in os.environ
 
-# Permite o endereço do Render e o localhost
-ALLOWED_HOSTS = []
-RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
-else:
-    ALLOWED_HOSTS.extend(['127.0.0.1', 'localhost'])
+# Configuração robusta de ALLOWED_HOSTS para aceitar domínios personalizados
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.onrender.com']
+env_allowed_hosts = os.environ.get('ALLOWED_HOSTS')
+if env_allowed_hosts:
+    ALLOWED_HOSTS.extend([host.strip() for host in env_allowed_hosts.split(',')])
 
 # Definição das Aplicações
 INSTALLED_APPS = [
@@ -27,14 +24,14 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'whitenoise.runserver_nostatic', # WhiteNoise para estáticos
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'plataforma', 
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # WhiteNoise aqui logo após o Security
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -64,7 +61,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 # --- BANCO DE DADOS ---
-# Se estiver no Render, usa o banco deles. Se não, usa SQLite local.
 DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}',
@@ -91,7 +87,6 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Otimização do WhiteNoise
 if not DEBUG:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
@@ -107,10 +102,16 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-# --- SEGURANÇA EXTRA PARA PRODUÇÃO ---
+# --- SEGURANÇA EXTRA E CSRF PARA DOMÍNIO PERSONALIZADO ---
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # Essencial para evitar erros em formulários no seu domínio .org
+    CSRF_TRUSTED_ORIGINS = [
+        "https://jogo-sortudo.org",
+        "https://www.jogo-sortudo.org",
+        "https://jogo-sortudo.onrender.com"
+    ]
     
